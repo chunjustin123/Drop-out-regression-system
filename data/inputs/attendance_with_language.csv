@@ -1,0 +1,9 @@
+student_id,student_name,language,date,present
+S001,ராஜ் குமார்,tamil,2025-08-01,1
+S001,ராஜ் குமார்,tamil,2025-08-02,1
+S001,ராஜ் குமார்,tamil,2025-08-05,0
+S002,Arjun Sharma,hindi,2025-08-01,1
+S002,Arjun Sharma,hindi,2025-08-02,0
+S003,মোহন রায়,bengali,2025-08-01,0
+S003,মোহন রায়,bengali,2025-08-02,0
+

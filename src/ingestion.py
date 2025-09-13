@@ -36,10 +36,18 @@ def _read_table(path: Path) -> pd.DataFrame:
 
 
 def load_inputs(inputs_dir: Path) -> InputPaths:
+    def _pick(name: str) -> Path:
+        for ext in [".csv", ".xlsx", ".xls"]:
+            p = inputs_dir / f"{name}{ext}"
+            if p.exists():
+                return p
+        # default to CSV path even if missing; callers will handle errors
+        return inputs_dir / f"{name}.csv"
+
     return InputPaths(
-        attendance=inputs_dir / "attendance.xlsx",
-        assessments=inputs_dir / "assessments.xlsx",
-        fees=inputs_dir / "fees.xlsx",
+        attendance=_pick("attendance"),
+        assessments=_pick("assessments"),
+        fees=_pick("fees"),
     )
 
 
@@ -55,6 +63,16 @@ def _auto_map_attendance(df: pd.DataFrame) -> pd.DataFrame:
     for cand in ["student_id", "id", "student", "regno", "reg_no", "index_no", "admission_no"]:
         if cand in df.columns:
             df.rename(columns={cand: "student_id"}, inplace=True)
+            break
+    # Student name (optional)
+    for cand in ["student_name", "name", "full_name"]:
+        if cand in df.columns:
+            df.rename(columns={cand: "student_name"}, inplace=True)
+            break
+    # Student language (optional)
+    for cand in ["language", "lang", "preferred_language", "mother_tongue", "native_language"]:
+        if cand in df.columns:
+            df.rename(columns={cand: "student_language"}, inplace=True)
             break
     # Date
     for cand in ["date", "attendance_date", "day", "recorded_date"]:
@@ -90,6 +108,15 @@ def _auto_map_assessments(df: pd.DataFrame) -> pd.DataFrame:
         if cand in df.columns:
             df.rename(columns={cand: "student_id"}, inplace=True)
             break
+    for cand in ["student_name", "name", "full_name"]:
+        if cand in df.columns:
+            df.rename(columns={cand: "student_name"}, inplace=True)
+            break
+    # Student language (optional)
+    for cand in ["language", "lang", "preferred_language", "mother_tongue", "native_language"]:
+        if cand in df.columns:
+            df.rename(columns={cand: "student_language"}, inplace=True)
+            break
     for cand in ["assessment_name", "exam", "test", "assessment", "component", "name"]:
         if cand in df.columns:
             df.rename(columns={cand: "assessment_name"}, inplace=True)
@@ -110,6 +137,15 @@ def _auto_map_fees(df: pd.DataFrame) -> pd.DataFrame:
     for cand in ["student_id", "id", "student", "regno", "reg_no", "index_no", "admission_no"]:
         if cand in df.columns:
             df.rename(columns={cand: "student_id"}, inplace=True)
+            break
+    for cand in ["student_name", "name", "full_name"]:
+        if cand in df.columns:
+            df.rename(columns={cand: "student_name"}, inplace=True)
+            break
+    # Student language (optional)
+    for cand in ["language", "lang", "preferred_language", "mother_tongue", "native_language"]:
+        if cand in df.columns:
+            df.rename(columns={cand: "student_language"}, inplace=True)
             break
     for cand in ["amount_due", "due", "fee_due", "total_due"]:
         if cand in df.columns:
@@ -219,5 +255,35 @@ def _aggregate_frames(att: pd.DataFrame, ass: pd.DataFrame, fee: pd.DataFrame) -
         .reset_index()
         .fillna(0)
     )
+
+    # Attach student_name if available from any input frame
+    name_series = None
+    if "student_name" in att.columns:
+        name_series = att.groupby("student_id")["student_name"].first()
+    if "student_name" in ass.columns:
+        s = ass.groupby("student_id")["student_name"].first()
+        name_series = s if name_series is None else name_series.combine_first(s)
+    if "student_name" in fee.columns:
+        s = fee.groupby("student_id")["student_name"].first()
+        name_series = s if name_series is None else name_series.combine_first(s)
+    
+    # Attach student_language if available from any input frame
+    language_series = None
+    if "student_language" in att.columns:
+        language_series = att.groupby("student_id")["student_language"].first()
+    if "student_language" in ass.columns:
+        s = ass.groupby("student_id")["student_language"].first()
+        language_series = s if language_series is None else language_series.combine_first(s)
+    if "student_language" in fee.columns:
+        s = fee.groupby("student_id")["student_language"].first()
+        language_series = s if language_series is None else language_series.combine_first(s)
+    
+    if name_series is not None or language_series is not None:
+        merged = merged.set_index("student_id")
+        if name_series is not None:
+            merged["student_name"] = name_series
+        if language_series is not None:
+            merged["student_language"] = language_series
+        merged = merged.reset_index()
 
     return merged

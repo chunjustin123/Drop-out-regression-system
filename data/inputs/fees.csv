@@ -1,4 +1,4 @@
-student_id,amount_due,amount_paid,due_date
-S001,500,500,2025-08-31
-S002,500,200,2025-08-31
-S003,500,0,2025-08-31
+student_id,amount_due,amount_paid,due_date,parent_email
+S001,500,500,2025-08-31,john.smith@email.com
+S002,500,200,2025-08-31,harper.parent@email.com
+S003,500,0,2025-08-31,casey.parent@email.com
